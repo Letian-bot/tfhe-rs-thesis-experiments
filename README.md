@@ -1,54 +1,26 @@
-# Reproducing and Benchmarking TFHE via TFHE-rs — Experiments
+# Reproducing and Benchmarking TFHE via TFHE-rs
 
-Rust code for the experiments in Chapter 3 of the dissertation **“Reproducing and Benchmarking TFHE via TFHE-rs: A Study of Fully Homomorphic Encryption”** (University of Glasgow, MSc dissertation draft, September 2026).
+This repository contains the Rust code and experimental results used in the MSc dissertation:
 
-The repository is intentionally small: the main binaries correspond directly to Sections 3.1–3.4 of the dissertation. Earlier exploratory code is kept separately under `supplementary/` and is not required to reproduce the reported Chapter 3 experiments.
+**Reproducing and Benchmarking TFHE via TFHE-rs: A Study of Fully Homomorphic Encryption**
+
+University of Glasgow, 2026.
+
+The experiments reproduce several core behaviours of TFHE using TFHE-rs and evaluate the computational cost of homomorphic operations.
 
 ## Experiments
 
-| Dissertation section | Binary | Purpose |
+The repository contains the experiments described in Chapter 3 of the dissertation.
+
+| Section | Program | Description |
 |---|---|---|
-| 3.1 Reproducing Homomorphic Operations | `boolean_gates` | Test NAND, AND, OR and XOR on all four Boolean input pairs (16 cases). |
-| 3.1 Repeated correctness check | `nand_failure_rate` | Run 2,000 independently encrypted NAND evaluations and count incorrect outputs. |
-| 3.2 Evaluating Circuit Depth | `depth_experiment` | Chain `NAND(ct, ct)` at depths 1–10,000 and measure correctness and runtime. |
-| 3.3 Reproducing Programmable Bootstrapping | `pbs_experiment` | Use low-level `core_crypto` PBS for `x^2 mod 16` and an arbitrary lookup table. |
-| 3.4 Evaluating Multi-bit Homomorphic Computation | `scaling_experiment` | Benchmark encrypted addition and multiplication for 8/16/32/64-bit integers. |
+| 3.1 Reproducing Homomorphic Operations | `boolean_gates.rs` | Tests homomorphic NAND, AND, OR and XOR gates on all four Boolean input pairs (16 cases in total). |
+| 3.1 Repeated Correctness Test | `nand_failure_rate.rs` | Performs 2,000 NAND evaluations using randomly generated Boolean inputs and checks the decrypted outputs. |
+| 3.2 Evaluating Circuit Depth | `depth_experiment.rs` | Evaluates chained `NAND(ct, ct)` operations at circuit depths from 1 to 10,000 and records correctness and execution time. |
+| 3.3 Reproducing Programmable Bootstrapping | `pbs_experiment.rs` | Demonstrates programmable bootstrapping using `x^2 mod 16` and an arbitrary lookup table over a 4-bit message space. |
+| 3.4 Evaluating Multi-bit Homomorphic Computation | `scaling_experiment.rs` | Benchmarks homomorphic addition and multiplication for 8-, 16-, 32- and 64-bit encrypted unsigned integers. |
 
-## Requirements
-
-- Rust / Cargo
-- TFHE-rs 1.6.x
-- Release mode (FHE code is much slower in debug builds)
-
-The working experiment log records TFHE-rs 1.6.3, Rust 1.97.1, Windows x64, and an Intel Core i7-10870H with 16 GB RAM. The Cargo dependency is pinned to the compatible `~1.6.2` range used by the experiment sources.
-
-## Running the experiments
-
-```bash
-cargo run --release --bin boolean_gates
-cargo run --release --bin nand_failure_rate
-cargo run --release --bin depth_experiment
-cargo run --release --bin pbs_experiment
-cargo run --release --bin scaling_experiment
-```
-
-The depth and scaling experiments can take several minutes. The dissertation run of the 10,000-gate depth condition took about 149 seconds on the reference machine; 64-bit homomorphic multiplication averaged about 7.26 seconds in the controlled scaling benchmark.
-
-## Reported results
-
-The dissertation draft reports:
-
-- all 16 Boolean truth-table cases correct;
-- no incorrect NAND outputs in the reported 2,000-trial repeated check;
-- correct output through a chain of 10,000 bootstrapped NAND gates, with roughly constant time per gate for the longer chains;
-- all 16 inputs correct for both programmable-bootstrap lookup functions;
-- all 240 recorded multi-bit arithmetic results correct;
-- mean addition time increasing from 79.68 ms (8-bit) to 399.13 ms (64-bit);
-- mean multiplication time increasing from 156.84 ms (8-bit) to 7255.85 ms (64-bit).
-
-Exact tables transcribed from Chapter 3 are in [`results/thesis_results.md`](results/thesis_results.md). The original working log is retained as [`results/experiment_log.md`](results/experiment_log.md).
-
-## Repository layout
+## Repository Structure
 
 ```text
 .
@@ -61,24 +33,87 @@ Exact tables transcribed from Chapter 3 are in [`results/thesis_results.md`](res
 │       ├── depth_experiment.rs
 │       ├── pbs_experiment.rs
 │       └── scaling_experiment.rs
-├── results/
-│   ├── thesis_results.md
-│   └── experiment_log.md
-└── supplementary/
-    ├── core_crypto_sanity.rs
-    ├── nand_gate_unverified.rs
-    ├── integer_experiment_early.rs
-    └── failure_rate_three_parameter_sets.rs
+└── results/
+    └── thesis_results.md
 ```
 
-## Notes on reproducibility
+## Requirements
 
-Some low-level PBS examples use toy parameters for functional demonstration and are **not security-rated**. They should not be interpreted as recommended production parameters.
+- Rust
+- Cargo
+- TFHE-rs 1.6.x
+- Release build mode
 
-The `supplementary/` directory contains development-stage experiments that are useful for tracing the project history but are not needed for the Chapter 3 results. In particular, `nand_gate_unverified.rs` was explicitly marked as not compiled/run in the original source notes.
+The project uses the following TFHE-rs dependency:
 
-Runtime values are machine- and version-dependent. When reproducing the benchmarks, record the hardware, operating system, Rust version, TFHE-rs version, build mode, and trial count. The trends are more meaningful than treating the absolute timings as universal TFHE performance figures.
+```toml
+tfhe = { version = "~1.6.2", features = ["boolean", "shortint", "integer"] }
+```
 
-## Status
+Release mode should be used because homomorphic operations are significantly slower in debug builds.
 
-This repository was assembled from the dissertation experiment sources and aligned with the current dissertation draft. The package has not been recompiled in the packaging environment, so a clean `cargo build --release` should be performed before tagging a final archival release.
+## Running the Experiments
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Letian-bot/tfhe-rs-thesis-experiments.git
+cd tfhe-rs-thesis-experiments
+```
+
+Run an individual experiment with:
+
+```bash
+cargo run --release --bin boolean_gates
+cargo run --release --bin nand_failure_rate
+cargo run --release --bin depth_experiment
+cargo run --release --bin pbs_experiment
+cargo run --release --bin scaling_experiment
+```
+
+Some experiments, particularly the larger circuit-depth and integer multiplication experiments, may take longer to complete.
+
+## Experimental Results
+
+The main results reported in the dissertation include:
+
+- All 16 Boolean gate test cases produced the expected results.
+- No incorrect outputs were observed in the 2,000-trial NAND correctness test.
+- Correct computation was maintained through a chain of 10,000 NAND gates.
+- Programmable bootstrapping produced the expected output for all tested inputs for both the non-linear function and the arbitrary lookup table.
+- All recorded multi-bit addition and multiplication operations produced the expected results.
+
+For the multi-bit benchmark, the mean execution times reported in the dissertation were:
+
+| Width | Addition Mean | Multiplication Mean |
+|---:|---:|---:|
+| 8 bit | 79.68 ms | 156.84 ms |
+| 16 bit | 105.35 ms | 452.42 ms |
+| 32 bit | 183.90 ms | 1731.75 ms |
+| 64 bit | 399.13 ms | 7255.85 ms |
+
+The complete results corresponding to Chapter 3 are available in:
+
+`results/thesis_results.md`
+
+## Benchmark Methodology
+
+For the multi-bit benchmark, four integer widths were tested: 8, 16, 32 and 64 bits.
+
+Addition and multiplication were evaluated separately. Input ranges were restricted so that the plaintext result did not overflow the corresponding unsigned integer type.
+
+For each experimental condition:
+
+- cryptographic keys were generated once before measurement;
+- 3 warm-up operations were performed and excluded;
+- 30 runs were recorded using randomly generated plaintext inputs;
+- only the homomorphic operation was timed;
+- key generation, encryption and decryption were excluded from the measured execution time;
+- each decrypted result was checked for correctness;
+- mean execution time and standard deviation were calculated.
+
+## Reproducibility Notes
+
+Execution times depend on hardware, operating system, TFHE-rs version and other environmental factors. The absolute timings should therefore not be interpreted as universal TFHE-rs performance values.
+
+The benchmark results in this repository are intended to reproduce the experimental evaluation reported in the dissertation and to demonstrate the observed performance trends between different integer widths and homomorphic operations.
